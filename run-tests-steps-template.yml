@@ -1,0 +1,57 @@
+parameters:
+  - name: dotnetVersion
+    type: string
+
+steps:
+  - checkout: self
+    persistCredentials: true
+    clean: true
+    displayName: Self Checkout
+
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'sdk'
+      version: ${{ parameters.dotnetVersion }} 
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'restore'
+      projects: '**/*.csproj' 
+    displayName: Restore dependencies for .NET project
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'build'
+      projects: '**/*.csproj'  
+    displayName: Build the project
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'test'
+      projects: '**/*.csproj' 
+    displayName: Run Tests
+
+  - task: ArchiveFiles@2
+    condition: succeededOrFailed()
+    inputs:
+      rootFolderOrFile: '$(Build.SourcesDirectory)/CatApiTests/Logs'  
+      includeRootFolder: false
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/Logs.zip'
+      replaceExistingArchive: true
+    displayName: Archive Log Files
+
+  - task: PublishBuildArtifacts@1
+    condition: succeededOrFailed()
+    inputs:
+      pathToPublish: '$(Build.SourcesDirectory)/CatApiTests/Logs'
+      artifactName: 'TestLogs'
+    displayName: Publish Logs as Artifact
+
+  - task: PublishBuildArtifacts@1
+    condition: succeededOrFailed()
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)/Logs.zip'
+      artifactName: 'TestLogs'
+    displayName: Publish Zipped Logs as Artifact

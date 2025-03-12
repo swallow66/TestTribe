@@ -1,0 +1,41 @@
+trigger: none 
+#- main  
+
+pool: Default
+
+steps:
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '9.x' 
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- checkout: self
+  persistCredentials: true
+  clean: true
+  displayName: Self Checkout
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: '**/*.csproj' 
+  displayName: Restore dependencies for .NET project
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: '**/*.csproj'  
+  displayName: Build the project
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'test'
+    projects: '**/*.csproj' 
+  displayName: Run Tests
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: '**/test-*.xml'  # Path to the test result XML files (if available)
+    testRunTitle: 'DotNet Test Run'  # Optional title for the test run
+    mergeTestResults: true  # Merge test results from different sources if needed
+  condition: succeededOrFailed()

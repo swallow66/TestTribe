@@ -1,0 +1,48 @@
+parameters:
+  - name: message
+    displayName: Desired message
+    type: string
+    default: Hello, World!
+
+variables:
+  dotnetVersion: 9.x
+
+trigger:
+  - main
+
+schedules:
+  - cron: "0 0 * * *"
+    branches:
+      include:
+        - main
+
+jobs:
+- job: RunWindows
+  displayName: Run Tests on Windows
+  pool: Default
+  steps:
+  - powershell: |
+      Write-Output "${{ parameters.message }}"
+      Write-Output "Agent OS is: $env:AGENT_OS"
+    displayName: Check Agent OS
+    env:
+      AGENT_OS: $(agent.os)
+
+  - template: run-tests-steps-template.yml
+    parameters:
+      dotnetVersion: $(dotnetVersion)
+
+- job: RunLinux
+  displayName: Run Tests on Linux
+  pool: QA-TEST-POOL
+  steps:
+  - script: |
+      echo ${{ parameters.message }}
+      echo Agent OS is: $AGENT_OS
+    displayName: Check Agent OS
+    env:
+      AGENT_OS: $(agent.os)
+
+  - template: run-tests-steps-template.yml
+    parameters:
+      dotnetVersion: $(dotnetVersion)
